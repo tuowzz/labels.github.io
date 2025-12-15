@@ -2,144 +2,189 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Sheets → Paste → Print (100x75 auto split)</title>
+<title>Label Print 100x75</title>
 
 <style>
 @page { size: 100mm 75mm; margin: 0; }
 
-body { font-family: Tahoma, Arial, sans-serif; margin: 8px; }
-.controls { margin-bottom: 12px; }
-textarea { width: 100%; height: 220px; font-size: 14px; }
-button { padding: 8px 14px; font-size: 15px; margin-top: 6px; cursor: pointer; }
+body {
+  font-family: Tahoma, Arial, sans-serif;
+  margin: 8px;
+}
 
-.label{
-  width: 100mm; height: 75mm; padding: 6mm;
+.controls {
+  margin-bottom: 12px;
+}
+
+textarea {
+  width: 100%;
+  height: 220px;
+  font-size: 14px;
+}
+
+button {
+  padding: 8px 14px;
+  font-size: 15px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.label {
+  width: 100mm;
+  height: 75mm;
+  padding: 6mm;
   box-sizing: border-box;
   border: 1px dashed #999;
   page-break-after: always;
 }
-.label .title{ font-weight: 700; font-size: 12.8pt; margin: 0 0 3px 0; }
-.label pre{
-  font-size: 10.8pt; line-height: 1.22;
-  white-space: pre-wrap; margin: 0;
+
+.title {
+  font-weight: bold;
+  font-size: 13pt;
+  margin-bottom: 4px;
 }
 
-@media print{
-  .controls{ display:none; }
-  .label{ border:none; }
+.body {
+  font-size: 11pt;
+  line-height: 1.25;
+  white-space: pre-wrap;
+}
+
+.sku {
+  font-weight: bold;
+  font-size: 12pt;
+  margin-bottom: 3px;
+}
+
+@media print {
+  .controls { display: none; }
+  .label { border: none; }
 }
 </style>
 </head>
 
 <body>
-<div class="controls">
-  <h3>Sheets → Paste → Print (100 × 75 mm) — แยกอัตโนมัติ</h3>
-  <div style="font-size:13px;color:#444">
-    วางข้อมูลยาวๆ ได้เลย <b>ไม่ต้องเว้นบรรทัด</b> ระบบจะแยกเมื่อเจอ <b>COD:</b> หรือ <b>ชื่อ:</b>
-  </div>
 
-  <textarea id="input" placeholder="วางข้อมูลตรงนี้..."></textarea><br>
-  <button onclick="buildLabels()">สร้างลาเบล</button>
+<div class="controls">
+  <h3>Paste → Print (100×75 mm)</h3>
+  <p>ใช้ <b>"</b> ครอบ 1 ลาเบล / วางยาวได้เลย</p>
+
+  <textarea id="input" placeholder='วางข้อมูล เช่น
+
+"คุณ เฉลิมขวัญ
+13/4
+หมู่13
+ต.คลองห้า
+อ.คลองหลวง
+จ.ปทุมธานี
+12120
+0847596746
+
+B2"
+
+"เก็บเงิน 379 บาท แปรง=2
+ผู้รับ
+คุณภชสร ธนบุญเศรษฐ์
+2/342 ซอยนิมิตใหม่ 1 แยก 8 ถนนนิมิตใหม่
+แขวงมีนบุรี
+เขตมีนบุรี
+กทม.10510
+โทร0935933654"
+'></textarea><br>
+
+  <button onclick="build()">สร้างลาเบล</button>
   <button onclick="window.print()">พิมพ์</button>
 </div>
 
-<div id="output"></div>
+<div id="out"></div>
 
 <script>
-function buildLabels(){
-  const raw = document.getElementById('input').value.replace(/\r/g,'').trim();
-  const out = document.getElementById('output');
+function build(){
+  const raw = document.getElementById('input').value;
+  const out = document.getElementById('out');
   out.innerHTML = '';
+
   if(!raw) return;
 
-  const blocks = splitBlocks(raw);
+  // === แยกลาเบลด้วย " ===
+  const blocks = raw.split('"').map(b => b.trim()).filter(Boolean);
 
-  blocks.forEach(b=>{
-    const label = normalizeBlock(b);
+  blocks.forEach(block => {
+    const label = parseBlock(block);
     if(!label) return;
 
     const el = document.createElement('div');
     el.className = 'label';
-    el.innerHTML = `
-      <div class="title">${esc(label.title)}</div>
-      <pre>${esc(label.body)}</pre>
-    `;
+
+    let html = '';
+    if(label.sku && label.isCOD){
+      html += `<div class="sku">รหัสสินค้า: ${label.sku}</div>`;
+    }
+
+    html += `<div class="title">${label.title}</div>`;
+    html += `<div class="body">${label.body}</div>`;
+
+    if(label.sku && !label.isCOD){
+      html += `<div class="sku">รหัสสินค้า: ${label.sku}</div>`;
+    }
+
+    el.innerHTML = html;
     out.appendChild(el);
   });
 }
 
-// แยกบล็อกอัตโนมัติ: เจอ COD: หรือ "ชื่อ:" = เริ่มลาเบลใหม่
-function splitBlocks(text){
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l && l !== 'ผู้รับ');
-  const blocks = [];
-  let cur = [];
+function parseBlock(text){
+  let lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
 
-  const isStart = (s) => /^"?\s*COD\s*:/i.test(s) || /^ชื่อ\s*[:：]/i.test(s);
+  // COD ?
+  const isCOD = lines.some(l => l.includes('เก็บเงิน') || l.startsWith('COD'));
 
-  for(const line of lines){
-    if(isStart(line) && cur.length){
-      blocks.push(cur.join('\n'));
-      cur = [line];
-    } else {
-      cur.push(line);
+  // SKU (B2 ฯลฯ)
+  let sku = '';
+  const last = lines[lines.length-1];
+  if(/^[A-Z]\d{1,2}$/i.test(last)){
+    sku = last.toUpperCase();
+    lines.pop();
+  }
+
+  // phone
+  let phone = '';
+  lines = lines.filter(l=>{
+    const m = l.match(/([0-9]{9,10})/);
+    if(m && !phone){
+      phone = m[1];
+      return false;
     }
-  }
-  if(cur.length) blocks.push(cur.join('\n'));
-  return blocks;
-}
+    return true;
+  });
 
-function normalizeBlock(block){
-  const b = (block||'').trim();
-  if(!b) return null;
+  // remove ผู้รับ
+  lines = lines.filter(l => l !== 'ผู้รับ');
 
-  const lines = b.split('\n').map(x=>x.trim()).filter(Boolean);
+  // name
+  let nameLine = lines.find(l => l.startsWith('คุณ'));
+  if(!nameLine) nameLine = lines[0] || '';
 
-  // title: ถ้ามี COD ใช้ COD เป็นหัว ไม่งั้นใช้ "ชื่อ: ..."
-  const cod = lines.find(x => /^"?\s*COD\s*:/i.test(x));
-  const nameLine = lines.find(x => /^ชื่อ\s*[:：]/i.test(x));
-  const title = cod ? stripQuotes(cod) : (nameLine ? stripQuotes(nameLine) : stripQuotes(lines[0]));
+  const name = nameLine.replace(/^คุณ\s*/,'').trim();
 
-  // body: รวมชื่อ/โทร/ที่อยู่ให้เป็นระเบียบ
-  const name = nameLine ? nameLine.replace(/^ชื่อ\s*[:：]\s*/,'').trim() : '';
-  const phoneMatch = b.match(/โทร\s*[:：]?\s*([0-9\-\s]{8,})/i) || b.match(/(^|\n)\s*([0-9]{9,10})\s*($|\n)/);
-  const phone = phoneMatch ? (phoneMatch[1] || phoneMatch[2]).trim() : '';
+  // address
+  const addr = lines.filter(l => l !== nameLine).join('\n');
 
-  // ที่อยู่: ถ้ามี "ที่อยู่:" เอาหลังคำนี้ไปจนจบ
-  let addr = '';
-  const addrIdx = b.search(/ที่อยู่\s*[:：]/);
-  if(addrIdx >= 0){
-    addr = b.slice(addrIdx).replace(/^.*ที่อยู่\s*[:：]\s*/m,'').trim();
-    addr = addr.replace(/\n?(COD\s*:|ชื่อ\s*:|โทร\s*:).*$/mi,'').trim(); // กันกรณีแปลกๆ
-  } else {
-    // ถ้าไม่มีคำว่า "ที่อยู่:" ให้เอาบรรทัดที่ไม่ใช่ COD/ชื่อ/โทร เป็นที่อยู่
-    const addrLines = lines.filter(x =>
-      !/^"?\s*COD\s*:/i.test(x) &&
-      !/^ชื่อ\s*[:：]/i.test(x) &&
-      !/^โทร\s*[:：]/i.test(x) &&
-      !/^[0-9]{9,10}$/.test(x)
-    );
-    addr = addrLines.join('\n').trim();
-  }
+  // title
+  const title = isCOD ? 'เก็บเงินปลายทาง' : `ชื่อ: ${name}`;
 
-  // ตัดบรรทัดไม่จำเป็น (เช่น "เก็บเงิน ...") ถ้าอยากให้ตัดตลอด บอกผมได้
-  // const cleanedAddr = addr.replace(/^เก็บเงิน.*$/gmi,'').trim();
-
+  // body
   let body = '';
-  if(name) body += `ชื่อ: ${name}\n`;
+  body += `ชื่อ: ${name}\n`;
   if(phone) body += `โทร: ${phone}\n`;
   if(addr) body += `ที่อยู่: ${addr}`;
 
-  // กันกรณี body ว่าง
-  if(!body.trim()) body = lines.join('\n');
-
-  return { title, body: body.trim() };
-}
-
-function stripQuotes(s){ return (s||'').replace(/^"+|"+$/g,'').trim(); }
-function esc(s){
-  return (s||'').replace(/[&<>"']/g, m => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  })[m]);
+  return {
+    title,
+    body: body.trim(),
+    sku,
+    isCOD
+  };
 }
 </script>
 
