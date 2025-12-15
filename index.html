@@ -136,67 +136,71 @@ function build(){
 function parseBlock(text){
   let rawLines = text.split('\n').map(l=>l.trim()).filter(Boolean);
 
-  // COD ?
+  // ตรวจว่าเป็น COD ไหม
   const isCOD = rawLines.some(l => l.includes('เก็บเงิน') || l.startsWith('COD'));
 
-  // SKU (B2 ฯลฯ)
+  // หา SKU (B2 ฯลฯ)
   let sku = '';
-  const last = rawLines[rawLines.length-1];
-  if(/^[A-Z]\d{1,2}$/i.test(last)){
+  const last = rawLines[rawLines.length - 1];
+  if (/^[A-Z]\d{1,2}$/i.test(last)) {
     sku = last.toUpperCase();
     rawLines.pop();
   }
 
-  // remove ผู้รับ
+  // ตัดคำว่า ผู้รับ
   rawLines = rawLines.filter(l => l !== 'ผู้รับ');
 
   let name = '';
   let phone = '';
   let addrLines = [];
+  let noteLines = [];
 
-  rawLines.forEach(l=>{
-    // phone
+  rawLines.forEach(l => {
+    // เบอร์โทร
     const m = l.match(/([0-9]{9,10})/);
-    if(m && !phone){
+    if (m && !phone) {
       phone = m[1];
       return;
     }
 
-    // name
-    if(!name && l.startsWith('คุณ')){
+    // ข้าม COD / เก็บเงิน (ไม่เอาไปเป็นชื่อ)
+    if (l.startsWith('COD') || l.includes('เก็บเงิน')) {
+      noteLines.push(l);
+      return;
+    }
+
+    // ชื่อ
+    if (!name && l.startsWith('คุณ')) {
       name = l.replace(/^คุณ\s*/,'').trim();
       return;
     }
 
-    // note / COD line
-    if(l.includes('เก็บเงิน') || l.startsWith('COD')){
-      addrLines.unshift(l); // ดันขึ้นบนของที่อยู่
-      return;
-    }
-
-    // address
+    // ที่อยู่
     addrLines.push(l);
   });
 
-  // fallback ชื่อ
-  if(!name && rawLines.length){
-    name = rawLines[0];
-    addrLines = addrLines.slice(1);
-  }
+  // title
+  const title = isCOD ? 'เก็บเงินปลายทาง' : (name ? `ชื่อ: ${name}` : '');
 
-  // ===== title =====
-  const title = isCOD ? 'เก็บเงินปลายทาง' : `ชื่อ: ${name}`;
-
-  // ===== body (ระบบจัดเว้นบรรทัดให้เอง) =====
+  // body (ใส่เฉพาะที่มีจริง)
   let bodyLines = [];
 
-  bodyLines.push(`ชื่อ: ${name}`);
-  if(phone) bodyLines.push(`โทร: ${phone}`);
+  // COD = SKU บน
+  if (isCOD && sku) bodyLines.push(`รหัสสินค้า: ${sku}`);
 
-  if(addrLines.length){
+  // note / COD detail
+  noteLines.forEach(l => bodyLines.push(l));
+
+  if (name)  bodyLines.push(`ชื่อ: ${name}`);
+  if (phone) bodyLines.push(`โทร: ${phone}`);
+
+  if (addrLines.length) {
     bodyLines.push(`ที่อยู่:`);
     addrLines.forEach(l => bodyLines.push(l));
   }
+
+  // โอนเงิน = SKU ล่าง
+  if (!isCOD && sku) bodyLines.push(`รหัสสินค้า: ${sku}`);
 
   return {
     title,
@@ -205,6 +209,7 @@ function parseBlock(text){
     isCOD
   };
 }
+
 
 </script>
 
