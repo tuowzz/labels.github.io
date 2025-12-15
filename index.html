@@ -2,73 +2,41 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Sheets → Paste → Label Print (100x75)</title>
+<title>Sheets → Paste → Print (100x75 auto split)</title>
 
 <style>
-@page {
-  size: 100mm 75mm;
-  margin: 0;
-}
+@page { size: 100mm 75mm; margin: 0; }
 
-body {
-  font-family: Tahoma, Arial, sans-serif;
-  margin: 8px;
-}
+body { font-family: Tahoma, Arial, sans-serif; margin: 8px; }
+.controls { margin-bottom: 12px; }
+textarea { width: 100%; height: 220px; font-size: 14px; }
+button { padding: 8px 14px; font-size: 15px; margin-top: 6px; cursor: pointer; }
 
-.controls {
-  margin-bottom: 12px;
-}
-
-textarea {
-  width: 100%;
-  height: 200px;
-  font-size: 14px;
-}
-
-button {
-  padding: 8px 14px;
-  font-size: 15px;
-  margin-top: 6px;
-  cursor: pointer;
-}
-
-.label {
-  width: 100mm;
-  height: 75mm;
-  padding: 6mm;
+.label{
+  width: 100mm; height: 75mm; padding: 6mm;
   box-sizing: border-box;
   border: 1px dashed #999;
   page-break-after: always;
 }
-
-.label h1 {
-  font-size: 14pt;
-  margin: 0 0 4px 0;
+.label .title{ font-weight: 700; font-size: 12.8pt; margin: 0 0 3px 0; }
+.label pre{
+  font-size: 10.8pt; line-height: 1.22;
+  white-space: pre-wrap; margin: 0;
 }
 
-.label pre {
-  font-size: 11.5pt;
-  line-height: 1.25;
-  white-space: pre-wrap;
-  margin: 0;
-}
-
-@media print {
-  .controls {
-    display: none;
-  }
-  .label {
-    border: none;
-  }
+@media print{
+  .controls{ display:none; }
+  .label{ border:none; }
 }
 </style>
 </head>
 
 <body>
-
 <div class="controls">
-  <h3>Sheets → Paste → Print (100 × 75 mm)</h3>
-  <p>วางข้อมูลจาก Google Sheets ได้เลย (เว้น 1 บรรทัดว่าง = 1 ลาเบล)</p>
+  <h3>Sheets → Paste → Print (100 × 75 mm) — แยกอัตโนมัติ</h3>
+  <div style="font-size:13px;color:#444">
+    วางข้อมูลยาวๆ ได้เลย <b>ไม่ต้องเว้นบรรทัด</b> ระบบจะแยกเมื่อเจอ <b>COD:</b> หรือ <b>ชื่อ:</b>
+  </div>
 
   <textarea id="input" placeholder="วางข้อมูลตรงนี้..."></textarea><br>
   <button onclick="buildLabels()">สร้างลาเบล</button>
@@ -78,49 +46,98 @@ button {
 <div id="output"></div>
 
 <script>
-function buildLabels() {
+function buildLabels(){
   const raw = document.getElementById('input').value.replace(/\r/g,'').trim();
   const out = document.getElementById('output');
   out.innerHTML = '';
+  if(!raw) return;
 
-  if (!raw) return;
+  const blocks = splitBlocks(raw);
 
-  // แยกเป็นก้อนด้วยบรรทัดว่าง
-  const blocks = raw.split(/\n\s*\n+/);
+  blocks.forEach(b=>{
+    const label = normalizeBlock(b);
+    if(!label) return;
 
-  blocks.forEach(block => {
-    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-    if (!lines.length) return;
-
-    // หาเบอร์โทร
-    let phone = '';
-    for (const l of lines) {
-      const m = l.match(/โทร[:\s]*([0-9\-]{9,})/i) || l.match(/^([0-9]{9,10})$/);
-      if (m) phone = m[1];
-    }
-
-    // หาหัว (COD ถ้ามี ไม่งั้นใช้บรรทัดแรก)
-    let title = lines.find(l => l.startsWith('COD')) || lines[0];
-
-    // เนื้อหา
-    let body = lines.filter(l => l !== title);
-
-    if (phone && !block.includes('โทร')) {
-      body.push('โทร: ' + phone);
-    }
-
-    const label = document.createElement('div');
-    label.className = 'label';
-    label.innerHTML = `
-      <h1>${escapeHtml(title)}</h1>
-      <pre>${escapeHtml(body.join('\n'))}</pre>
+    const el = document.createElement('div');
+    el.className = 'label';
+    el.innerHTML = `
+      <div class="title">${esc(label.title)}</div>
+      <pre>${esc(label.body)}</pre>
     `;
-    out.appendChild(label);
+    out.appendChild(el);
   });
 }
 
-function escapeHtml(text) {
-  return text.replace(/[&<>"']/g, m => ({
+// แยกบล็อกอัตโนมัติ: เจอ COD: หรือ "ชื่อ:" = เริ่มลาเบลใหม่
+function splitBlocks(text){
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l && l !== 'ผู้รับ');
+  const blocks = [];
+  let cur = [];
+
+  const isStart = (s) => /^"?\s*COD\s*:/i.test(s) || /^ชื่อ\s*[:：]/i.test(s);
+
+  for(const line of lines){
+    if(isStart(line) && cur.length){
+      blocks.push(cur.join('\n'));
+      cur = [line];
+    } else {
+      cur.push(line);
+    }
+  }
+  if(cur.length) blocks.push(cur.join('\n'));
+  return blocks;
+}
+
+function normalizeBlock(block){
+  const b = (block||'').trim();
+  if(!b) return null;
+
+  const lines = b.split('\n').map(x=>x.trim()).filter(Boolean);
+
+  // title: ถ้ามี COD ใช้ COD เป็นหัว ไม่งั้นใช้ "ชื่อ: ..."
+  const cod = lines.find(x => /^"?\s*COD\s*:/i.test(x));
+  const nameLine = lines.find(x => /^ชื่อ\s*[:：]/i.test(x));
+  const title = cod ? stripQuotes(cod) : (nameLine ? stripQuotes(nameLine) : stripQuotes(lines[0]));
+
+  // body: รวมชื่อ/โทร/ที่อยู่ให้เป็นระเบียบ
+  const name = nameLine ? nameLine.replace(/^ชื่อ\s*[:：]\s*/,'').trim() : '';
+  const phoneMatch = b.match(/โทร\s*[:：]?\s*([0-9\-\s]{8,})/i) || b.match(/(^|\n)\s*([0-9]{9,10})\s*($|\n)/);
+  const phone = phoneMatch ? (phoneMatch[1] || phoneMatch[2]).trim() : '';
+
+  // ที่อยู่: ถ้ามี "ที่อยู่:" เอาหลังคำนี้ไปจนจบ
+  let addr = '';
+  const addrIdx = b.search(/ที่อยู่\s*[:：]/);
+  if(addrIdx >= 0){
+    addr = b.slice(addrIdx).replace(/^.*ที่อยู่\s*[:：]\s*/m,'').trim();
+    addr = addr.replace(/\n?(COD\s*:|ชื่อ\s*:|โทร\s*:).*$/mi,'').trim(); // กันกรณีแปลกๆ
+  } else {
+    // ถ้าไม่มีคำว่า "ที่อยู่:" ให้เอาบรรทัดที่ไม่ใช่ COD/ชื่อ/โทร เป็นที่อยู่
+    const addrLines = lines.filter(x =>
+      !/^"?\s*COD\s*:/i.test(x) &&
+      !/^ชื่อ\s*[:：]/i.test(x) &&
+      !/^โทร\s*[:：]/i.test(x) &&
+      !/^[0-9]{9,10}$/.test(x)
+    );
+    addr = addrLines.join('\n').trim();
+  }
+
+  // ตัดบรรทัดไม่จำเป็น (เช่น "เก็บเงิน ...") ถ้าอยากให้ตัดตลอด บอกผมได้
+  // const cleanedAddr = addr.replace(/^เก็บเงิน.*$/gmi,'').trim();
+
+  let body = '';
+  if(name) body += `ชื่อ: ${name}\n`;
+  if(phone) body += `โทร: ${phone}\n`;
+  if(addr) body += `ที่อยู่: ${addr}`;
+
+  // กันกรณี body ว่าง
+  if(!body.trim()) body = lines.join('\n');
+
+  return { title, body: body.trim() };
+}
+
+function stripQuotes(s){ return (s||'').replace(/^"+|"+$/g,'').trim(); }
+function esc(s){
+  return (s||'').replace(/[&<>"']/g, m => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   })[m]);
 }
