@@ -134,58 +134,78 @@ function build(){
 }
 
 function parseBlock(text){
-  let lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  let rawLines = text.split('\n').map(l=>l.trim()).filter(Boolean);
 
   // COD ?
-  const isCOD = lines.some(l => l.includes('เก็บเงิน') || l.startsWith('COD'));
+  const isCOD = rawLines.some(l => l.includes('เก็บเงิน') || l.startsWith('COD'));
 
   // SKU (B2 ฯลฯ)
   let sku = '';
-  const last = lines[lines.length-1];
+  const last = rawLines[rawLines.length-1];
   if(/^[A-Z]\d{1,2}$/i.test(last)){
     sku = last.toUpperCase();
-    lines.pop();
+    rawLines.pop();
   }
 
-  // phone
+  // remove ผู้รับ
+  rawLines = rawLines.filter(l => l !== 'ผู้รับ');
+
+  let name = '';
   let phone = '';
-  lines = lines.filter(l=>{
+  let addrLines = [];
+
+  rawLines.forEach(l=>{
+    // phone
     const m = l.match(/([0-9]{9,10})/);
     if(m && !phone){
       phone = m[1];
-      return false;
+      return;
     }
-    return true;
+
+    // name
+    if(!name && l.startsWith('คุณ')){
+      name = l.replace(/^คุณ\s*/,'').trim();
+      return;
+    }
+
+    // note / COD line
+    if(l.includes('เก็บเงิน') || l.startsWith('COD')){
+      addrLines.unshift(l); // ดันขึ้นบนของที่อยู่
+      return;
+    }
+
+    // address
+    addrLines.push(l);
   });
 
-  // remove ผู้รับ
-  lines = lines.filter(l => l !== 'ผู้รับ');
+  // fallback ชื่อ
+  if(!name && rawLines.length){
+    name = rawLines[0];
+    addrLines = addrLines.slice(1);
+  }
 
-  // name
-  let nameLine = lines.find(l => l.startsWith('คุณ'));
-  if(!nameLine) nameLine = lines[0] || '';
-
-  const name = nameLine.replace(/^คุณ\s*/,'').trim();
-
-  // address
-  const addr = lines.filter(l => l !== nameLine).join('\n');
-
-  // title
+  // ===== title =====
   const title = isCOD ? 'เก็บเงินปลายทาง' : `ชื่อ: ${name}`;
 
-  // body
-  let body = '';
-  body += `ชื่อ: ${name}\n`;
-  if(phone) body += `โทร: ${phone}\n`;
-  if(addr) body += `ที่อยู่: ${addr}`;
+  // ===== body (ระบบจัดเว้นบรรทัดให้เอง) =====
+  let bodyLines = [];
+
+  bodyLines.push(`ชื่อ: ${name}`);
+  if(phone) bodyLines.push(`โทร: ${phone}`);
+
+  if(addrLines.length){
+    bodyLines.push(`ที่อยู่:`);
+    addrLines.forEach(l => bodyLines.push(l));
+  }
 
   return {
     title,
-    body: body.trim(),
+    body: bodyLines.join('\n'),
     sku,
     isCOD
   };
 }
+
 </script>
 
 </body>
