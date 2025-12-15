@@ -1,339 +1,170 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>บทความแนะนำคอนซีลเลอร์ M-BLITHE | รีวิว เทคนิค และวิธีดูแลผิว</title>
-  <meta name="description" content="บทความแนะนำการเลือกเฉดสีคอนซีลเลอร์ M-BLITHE เทคนิคแต่งหน้าปกปิดรอยสิว รีวิวเปรียบเทียบแบรนด์ และวิธีดูแลผิวก่อนใช้คอนซีลเลอร์" />
-  <meta name="keywords" content="คอนซีลเลอร์, รีวิวคอนซีลเลอร์, เทคนิคแต่งหน้า, M-BLITHE, วิธีเลือกเฉดสีคอนซีลเลอร์, ดูแลผิว" />
-  
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7416292559334504"
-          crossorigin="anonymous"></script>
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Google Sheets → Label Print</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&display=swap');
-    body {
-      font-family: 'Kanit', sans-serif, Arial, sans-serif;
-      max-width: 900px;
-      margin: 40px auto 80px;
-      background: #fff8f0;
-      color: #222;
-      padding: 0 20px;
-      line-height: 1.7;
-      scroll-behavior: smooth;
+    :root{
+      --w: 100mm;
+      --h: 150mm;
+      --pad: 6mm;
+      --font: 13pt;
+      --line: 1.25;
     }
-    h1, h2 {
-      color: #fe2c55;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 20px;
-      letter-spacing: 0.04em;
-      text-shadow: 0 1px 2px rgba(254,44,85,0.3);
+
+    body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:end; }
+    label{ font-size:14px; }
+    input, textarea, button{ font: inherit; }
+    input{ width: 110px; padding: 6px 8px; }
+    textarea{ width: min(980px, 100%); height: 180px; padding: 10px; }
+    button{ padding: 10px 14px; cursor: pointer; }
+    .hint{ color:#555; font-size:13px; }
+
+    /* Preview area */
+    #out{ margin-top: 18px; display:flex; flex-direction:column; gap: 10px; }
+    .page{
+      width: var(--w);
+      height: var(--h);
+      border: 1px dashed #aaa;
+      box-sizing: border-box;
+      padding: var(--pad);
+      overflow: hidden;
+      background: white;
     }
-    h2 {
-      text-align: left;
-      margin-top: 50px;
-      margin-bottom: 25px;
-      border-bottom: 3px solid #f9426e;
-      padding-bottom: 8px;
-      font-size: 1.8rem;
-    }
-    nav {
-      position: sticky;
-      top: 0;
-      background: #fff1f3;
-      border-radius: 12px;
-      padding: 15px 20px;
-      box-shadow: 0 8px 18px rgba(254,44,85,0.1);
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      margin-bottom: 40px;
-      z-index: 999;
-    }
-    nav a {
-      color: #d42b48;
-      font-weight: 600;
-      text-decoration: none;
-      font-size: 1.1rem;
-      padding: 6px 14px;
-      border-radius: 12px;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    nav a:hover,
-    nav a:focus {
-      background-color: #fe2c55;
-      color: #fff;
-      outline: none;
-    }
-    section {
-      background: #fff3e0;
-      padding: 25px 30px;
-      border-radius: 18px;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.07);
-      margin-bottom: 60px;
-      transition: transform 0.3s ease;
-    }
-    section:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 25px rgba(254,44,85,0.2);
-    }
-    p, ul, ol {
-      font-size: 1.1rem;
-      margin-bottom: 20px;
-      color: #444;
-    }
-    ul, ol {
-      padding-left: 25px;
-    }
-    blockquote {
-      background: #ffeaea;
-      border-left: 6px solid #fe2c55;
-      padding: 18px 24px;
-      font-style: italic;
-      color: #9b1c2b;
-      margin: 25px 0;
-      border-radius: 12px;
-      box-shadow: 0 3px 10px rgba(254,44,85,0.1);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 25px;
-      font-size: 1rem;
-    }
-    thead tr {
-      background-color: #fe2c55;
-      color: white;
-    }
-    th, td {
-      padding: 14px 18px;
-      border: 1px solid #f9426e;
-      text-align: center;
-    }
-    tbody tr:nth-child(even) {
-      background: #fff1f3;
-    }
-    .cta-button {
-      display: block;
-      max-width: 320px;
-      margin: 40px auto 0;
-      background-color: #fe2c55;
-      color: white;
-      padding: 15px 0;
-      font-weight: 700;
-      border-radius: 40px;
-      text-align: center;
-      text-decoration: none;
-      font-size: 1.2rem;
-      box-shadow: 0 5px 15px rgba(254,44,85,0.4);
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    }
-    .cta-button:hover,
-    .cta-button:focus {
-      background-color: #d42b48;
-      box-shadow: 0 8px 25px rgba(212,43,72,0.7);
-      outline: none;
-    }
-    footer {
-      text-align: center;
-      color: #666;
-      font-size: 0.9rem;
-      border-top: 1px solid #ddd;
-      padding: 25px 0;
-      margin-top: 70px;
-      font-weight: 400;
-      letter-spacing: 0.02em;
-    }
-    /* Back to Top Button */
-    #backToTopBtn {
-      position: fixed;
-      bottom: 40px;
-      right: 40px;
-      display: none;
-      background-color: #fe2c55;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 48px;
-      height: 48px;
-      font-size: 24px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(254,44,85,0.5);
-      transition: background-color 0.3s ease;
-      z-index: 9999;
-    }
-    #backToTopBtn:hover {
-      background-color: #d42b48;
-    }
-    @media (max-width: 600px) {
-      body {
-        margin: 20px 12px 80px;
+    .name{ font-weight: 700; font-size: calc(var(--font) * 1.05); margin-bottom: 2mm; }
+    .addr{ font-size: var(--font); line-height: var(--line); white-space: pre-wrap; }
+    .phone{ margin-top: 3mm; font-size: calc(var(--font) * 0.95); }
+
+    /* Print */
+    @media print{
+      body{ margin: 0; }
+      .controls{ display:none; }
+      #out{ gap: 0; }
+      .page{
+        border: none;
+        page-break-after: always;
       }
-      nav {
-        flex-wrap: wrap;
-        gap: 15px;
-        padding: 12px 16px;
-      }
-      nav a {
-        font-size: 1rem;
-        padding: 5px 10px;
-      }
-      h1 {
-        font-size: 1.8rem;
-      }
-      h2 {
-        font-size: 1.4rem;
-        margin-top: 40px;
-      }
-      section {
-        padding: 20px 18px;
-        margin-bottom: 40px;
-      }
-      .cta-button {
-        max-width: 100%;
-        font-size: 1.1rem;
-        padding: 14px 0;
-      }
+    }
+
+    /* Let browser know page size */
+    @page{
+      size: var(--w) var(--h);
+      margin: 0;
     }
   </style>
 </head>
 <body>
 
-  <h1>บทความแนะนำคอนซีลเลอร์ M-BLITHE</h1>
+  <div class="controls">
+    <h2 style="margin:0 0 10px;">Sheets → Paste → Print (เรียงหลายหน้าอัตโนมัติ)</h2>
 
-  <nav>
-    <a href="#choose-shade" tabindex="1">1. วิธีเลือกเฉดสีคอนซีลเลอร์ให้เหมาะกับผิว</a>
-    <a href="#makeup-tips" tabindex="2">2. เทคนิคแต่งหน้าปกปิดรอยสิวด้วย M-BLITHE</a>
-    <a href="#compare-review" tabindex="3">3. รีวิวเปรียบเทียบคอนซีลเลอร์ M-BLITHE กับแบรนด์อื่น</a>
-    <a href="#skin-care" tabindex="4">4. วิธีดูแลผิวก่อนใช้คอนซีลเลอร์</a>
-  </nav>
+    <div class="row">
+      <label>ขนาดลาเบล (กว้าง mm)
+        <input id="w" type="number" value="100" min="10" step="1">
+      </label>
+      <label>สูง mm
+        <input id="h" type="number" value="150" min="10" step="1">
+      </label>
+      <label>Padding mm
+        <input id="pad" type="number" value="6" min="0" step="1">
+      </label>
+      <label>ขนาดตัวอักษร (pt)
+        <input id="font" type="number" value="13" min="6" step="1">
+      </label>
 
-  <!-- AdSense Top Banner -->
-  <ins class="adsbygoogle"
-       style="display:block; text-align:center;"
-       data-ad-layout="in-article"
-       data-ad-format="fluid"
-       data-ad-client="ca-pub-7416292559334504"
-       data-ad-slot="1234567890"></ins>
-  <script>
-    (adsbygoogle = window.adsbygoogle || []).push({});
-  </script>
+      <button id="build">สร้างลาเบล</button>
+      <button onclick="window.print()">พิมพ์</button>
+    </div>
 
-  <section id="choose-shade" tabindex="5">
-    <h2>1. วิธีเลือกเฉดสีคอนซีลเลอร์ให้เหมาะกับผิว</h2>
-    <p>การเลือกเฉดสีคอนซีลเลอร์ให้เหมาะกับสีผิวเป็นสิ่งสำคัญที่จะช่วยให้การปกปิดดูเป็นธรรมชาติและไม่ทำให้ใบหน้าดูหมองคล้ำหรือดูผิดปกติ</p>
-    <ul>
-      <li><strong>สำหรับผิวขาวเหลือง (Light Warm)</strong>: ควรเลือกเฉดสีที่สว่างกว่าผิวจริงเล็กน้อย เช่น เฉด B01 ของ M-BLITHE ที่เน้นโทนเหลืองอุ่น จะช่วยให้ผิวดูสดใสและปกปิดรอยดำใต้ตาได้ดี</li>
-      <li><strong>สำหรับผิวสองสี (Medium Tone)</strong>: เลือกเฉดสีที่ใกล้เคียงกับสีผิวจริง หรืออาจสว่างกว่าเล็กน้อย เช่น B02 หรือ B2.5 ขึ้นอยู่กับโทนผิว</li>
-      <li><strong>สำหรับผิวคล้ำถึงผิวน้ำผึ้ง (Deep Tone)</strong>: ใช้เฉดสีที่เข้มและอบอุ่น เช่น B03 ของ M-BLITHE ที่เหมาะกับผิวสีนี้ เพื่อให้เนื้อคอนซีลเลอร์กลมกลืนกับสีผิวและปกปิดได้เนียน</li>
-    </ul>
-    <p><em>เคล็ดลับ:</em> ทดสอบเฉดสีที่ขอบกรามหรือข้อมือเพื่อดูความกลมกลืนก่อนซื้อ และเลือกเนื้อคอนซีลเลอร์ที่เหมาะกับสภาพผิว เช่น แบบแมทท์สำหรับผิวมัน หรือแบบครีมสำหรับผิวแห้ง</p>
-  </section>
+    <p class="hint" style="margin:10px 0 6px;">
+      วิธีวางข้อมูล: ก๊อปจาก Google Sheets (หลายแถว/หลายคอลัมน์) แล้ววางตรงนี้ได้เลย<br>
+      รองรับรูปแบบ: <b>ชื่อ[TAB]ที่อยู่[TAB]โทร</b> ต่อ 1 แถว (หรือมีมากกว่านั้นก็ได้ ระบบจะหยิบ 3 ช่องแรก)
+    </p>
 
-  <!-- AdSense Inline Banner -->
-  <ins class="adsbygoogle"
-       style="display:inline-block;width:300px;height:250px; margin: 30px auto;"
-       data-ad-client="ca-pub-7416292559334504"
-       data-ad-slot="0987654321"></ins>
-  <script>
-    (adsbygoogle = window.adsbygoogle || []).push({});
-  </script>
+    <textarea id="src" placeholder="วางข้อมูลจาก Google Sheets ที่นี่..."></textarea>
+  </div>
 
-  <section id="makeup-tips" tabindex="6">
-    <h2>2. เทคนิคแต่งหน้าปกปิดรอยสิวด้วย M-BLITHE</h2>
-    <p>การปกปิดรอยสิวให้เนียนและดูเป็นธรรมชาติจำเป็นต้องใช้เทคนิคที่ถูกต้องร่วมกับผลิตภัณฑ์ที่ดี</p>
-    <ol>
-      <li><strong>เตรียมผิวให้สะอาดและชุ่มชื้น:</strong> ล้างหน้าให้สะอาดและทาครีมบำรุงหรือไพรเมอร์ก่อน เพื่อให้ผิวเรียบเนียนและรองรับคอนซีลเลอร์ได้ดี</li>
-      <li><strong>ใช้คอนซีลเลอร์ M-BLITHE ปกปิดรอยสิวโดยตรง:</strong> ใช้นิ้วหรือตัวฟองน้ำแตะคอนซีลเลอร์เล็กน้อย แล้วตบเบา ๆ บนรอยสิว อย่าถูหรือปาดมากเกินไป เพราะจะทำให้เนื้อคอนซีลเลอร์เลอะ</li>
-      <li><strong>เกลี่ยให้เนียน:</strong> ใช้ฟองน้ำเกลี่ยรอบ ๆ รอยสิวให้เข้ากับผิวหน้าอย่างดี เพื่อไม่ให้เห็นขอบของคอนซีลเลอร์</li>
-      <li><strong>เซ็ตด้วยแป้งฝุ่น:</strong> ใช้แปรงฟูนุ่ม ๆ โรยแป้งฝุ่นบาง ๆ บริเวณที่ทาคอนซีลเลอร์ เพื่อช่วยให้ติดทนนานและลดความมัน</li>
-      <li><strong>เติมคอนซีลเลอร์หากจำเป็น:</strong> หากยังเห็นรอยสิวชัด ให้เติมคอนซีลเลอร์เล็กน้อยซ้ำอีกครั้ง</li>
-    </ol>
-  </section>
+  <div id="out"></div>
 
-  <section id="compare-review" tabindex="7">
-    <h2>3. รีวิวเปรียบเทียบคอนซีลเลอร์ M-BLITHE กับแบรนด์อื่น</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>คุณสมบัติ</th>
-          <th>M-BLITHE</th>
-          <th>แบรนด์ A</th>
-          <th>แบรนด์ B</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>การปกปิด</td>
-          <td>ปกปิดสูง แต่บางเบา</td>
-          <td>ปกปิดดี แต่หนา</td>
-          <td>ปกปิดปานกลาง</td>
-        </tr>
-        <tr>
-          <td>ความติดทน</td>
-          <td>กันน้ำ กันเหงื่อดี</td>
-          <td>กันน้ำ แต่เหนียวหนา</td>
-          <td>ไม่กันน้ำ</td>
-        </tr>
-        <tr>
-          <td>เฉดสี</td>
-          <td>4 เฉด เหมาะทุกสีผิว</td>
-          <td>3 เฉด สีจำกัด</td>
-          <td>5 เฉด แต่สีจาง</td>
-        </tr>
-        <tr>
-          <td>ราคา</td>
-          <td>299-390 บาท</td>
-          <td>350-450 บาท</td>
-          <td>250-350 บาท</td>
-        </tr>
-        <tr>
-          <td>ความรู้สึกบนผิว</td>
-          <td>เบาสบาย ไม่หนักหน้า</td>
-          <td>หนักและเหนียว</td>
-          <td>เบาแต่ปกปิดน้อย</td>
-        </tr>
-      </tbody>
-    </table>
-    <p style="margin-top: 15px;">สรุป: M-BLITHE เหมาะกับคนที่ต้องการคอนซีลเลอร์ปกปิดดีแต่ไม่หนักหน้า เนื้อบางเบา และติดทนนาน เหมาะกับทุกสภาพผิว ในราคาที่จับต้องได้</p>
-  </section>
+<script>
+  const $ = (id)=>document.getElementById(id);
 
-  <section id="skin-care" tabindex="8">
-    <h2>4. วิธีดูแลผิวก่อนใช้คอนซีลเลอร์</h2>
-    <ul>
-      <li><strong>ทำความสะอาดผิวหน้าอย่างถูกวิธี:</strong> ล้างหน้าด้วยคลีนเซอร์ที่เหมาะกับสภาพผิว เพื่อขจัดความมันและสิ่งสกปรก</li>
-      <li><strong>เติมความชุ่มชื้น:</strong> ใช้มอยส์เจอร์ไรเซอร์ที่เหมาะกับผิว ไม่ให้ผิวแห้งจนเกินไป เพื่อรองรับการแต่งหน้า</li>
-      <li><strong>ใช้ไพรเมอร์ก่อนแต่งหน้า:</strong> ช่วยให้ผิวเรียบเนียนและเครื่องสำอางติดทนนานขึ้น</li>
-      <li><strong>หลีกเลี่ยงการแต่งหน้าหนักในวันผิวแห้งหรืออักเสบ:</strong> ให้ผิวได้พักและฟื้นฟูก่อน</li>
-    </ul>
-  </section>
+  function applyVars(){
+    document.documentElement.style.setProperty('--w', `${Number($('w').value||100)}mm`);
+    document.documentElement.style.setProperty('--h', `${Number($('h').value||150)}mm`);
+    document.documentElement.style.setProperty('--pad', `${Number($('pad').value||6)}mm`);
+    document.documentElement.style.setProperty('--font', `${Number($('font').value||13)}pt`);
+  }
 
-  <a href="https://lin.ee/wKelfsp" target="_blank" class="cta-button" tabindex="9">สั่งซื้อคอนซีลเลอร์ M-BLITHE พร้อมโปรพิเศษ</a>
+  function parseTSV(text){
+    // Accept both TSV and "blocks" separated by blank lines
+    const t = (text||'').trim();
+    if(!t) return [];
 
-  <footer>
-    <p>© 2025 M-BLITHE | สงวนลิขสิทธิ์</p>
-  </footer>
+    // If it looks like TSV rows (has tabs), parse as table
+    if(t.includes('\t')){
+      const lines = t.split(/\r?\n/).filter(l=>l.trim().length);
+      return lines.map(line=>{
+        const cols = line.split('\t').map(s=>s.trim());
+        const name = cols[0] || '';
+        const addr = cols[1] || '';
+        const phone = cols[2] || '';
+        return {name, addr, phone};
+      }).filter(x => (x.name+x.addr+x.phone).trim().length);
+    }
 
-  <button id="backToTopBtn" aria-label="กลับขึ้นบนสุด">↑</button>
-
-  <script>
-    // Back to top button
-    const backToTopBtn = document.getElementById('backToTopBtn');
-
-    window.addEventListener('scroll', () => {
-      if (window.pageYOffset > 400) {
-        backToTopBtn.style.display = 'block';
-      } else {
-        backToTopBtn.style.display = 'none';
+    // Otherwise treat as blocks separated by blank line:
+    // 1st line = name, last line maybe phone, middle = address
+    const blocks = t.split(/\n\s*\n/);
+    return blocks.map(b=>{
+      const lines = b.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      if(!lines.length) return null;
+      const name = lines[0] || '';
+      let phone = '';
+      // heuristic: last line contains digits -> phone
+      if(lines.length >= 2 && /[0-9]{6,}/.test(lines[lines.length-1].replace(/\D/g,''))){
+        phone = lines.pop();
       }
-    });
+      const addr = lines.slice(1).join('\n');
+      return {name, addr, phone};
+    }).filter(Boolean);
+  }
 
-    backToTopBtn.addEventListener('click', () => {
-      window.scrollTo({top: 0, behavior: 'smooth'});
-    });
-  </script>
+  function esc(s){
+    return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
 
+  function render(items){
+    const out = $('out');
+    out.innerHTML = '';
+    if(!items.length){
+      out.innerHTML = '<p class="hint">ยังไม่มีข้อมูลให้สร้างลาเบล</p>';
+      return;
+    }
+    for(const it of items){
+      const page = document.createElement('div');
+      page.className = 'page';
+      page.innerHTML = `
+        <div class="name">${esc(it.name)}</div>
+        <div class="addr">${esc(it.addr)}</div>
+        ${it.phone ? `<div class="phone">โทร: ${esc(it.phone)}</div>` : ``}
+      `;
+      out.appendChild(page);
+    }
+  }
+
+  $('build').addEventListener('click', ()=>{
+    applyVars();
+    const items = parseTSV($('src').value);
+    render(items);
+    // Scroll preview into view
+    document.getElementById('out').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  // initial vars
+  applyVars();
+</script>
 </body>
 </html>
