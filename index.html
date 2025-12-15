@@ -2,96 +2,32 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Label Print 100x75</title>
-
+<title>Label Print 100x75 (Robust)</title>
 <style>
 @page { size: 100mm 75mm; margin: 0; }
-
-body {
-  font-family: Tahoma, Arial, sans-serif;
-  margin: 8px;
-}
-
-.controls {
-  margin-bottom: 12px;
-}
-
-textarea {
-  width: 100%;
-  height: 220px;
-  font-size: 14px;
-}
-
-button {
-  padding: 8px 14px;
-  font-size: 15px;
-  margin-top: 6px;
-  cursor: pointer;
-}
-
-.label {
-  width: 100mm;
-  height: 75mm;
-  padding: 6mm;
+body { font-family: Tahoma, Arial, sans-serif; margin: 8px; }
+.controls { margin-bottom: 12px; }
+textarea { width: 100%; height: 240px; font-size: 14px; }
+button { padding: 8px 14px; font-size: 15px; margin-top: 6px; cursor: pointer; }
+.label{
+  width: 100mm; height: 75mm; padding: 6mm;
   box-sizing: border-box;
   border: 1px dashed #999;
   page-break-after: always;
 }
-
-.title {
-  font-weight: bold;
-  font-size: 13pt;
-  margin-bottom: 4px;
-}
-
-.body {
-  font-size: 11pt;
-  line-height: 1.25;
-  white-space: pre-wrap;
-}
-
-.sku {
-  font-weight: bold;
-  font-size: 12pt;
-  margin-bottom: 3px;
-}
-
-@media print {
-  .controls { display: none; }
-  .label { border: none; }
-}
+.sku { font-weight: 800; font-size: 12pt; margin-bottom: 3px; }
+.body { font-size: 11pt; line-height: 1.22; white-space: pre-wrap; }
+@media print{ .controls{ display:none; } .label{ border:none; } }
 </style>
 </head>
-
 <body>
 
 <div class="controls">
-  <h3>Paste → Print (100×75 mm)</h3>
-  <p>ใช้ <b>"</b> ครอบ 1 ลาเบล / วางยาวได้เลย</p>
-
-  <textarea id="input" placeholder='วางข้อมูล เช่น
-
-"คุณ เฉลิมขวัญ
-13/4
-หมู่13
-ต.คลองห้า
-อ.คลองหลวง
-จ.ปทุมธานี
-12120
-0847596746
-
-B2"
-
-"เก็บเงิน 379 บาท แปรง=2
-ผู้รับ
-คุณภชสร ธนบุญเศรษฐ์
-2/342 ซอยนิมิตใหม่ 1 แยก 8 ถนนนิมิตใหม่
-แขวงมีนบุรี
-เขตมีนบุรี
-กทม.10510
-โทร0935933654"
-'></textarea><br>
-
+  <h3>Paste → Print (100×75) — Robust</h3>
+  <div style="font-size:13px;color:#444">
+    ใช้ <b>"</b> ครอบ 1 ลาเบล ระบบจะจัดให้เอง (ไม่เติมหัวข้อชื่อ/โทร/ที่อยู่)
+  </div>
+  <textarea id="input" placeholder='วางข้อมูลที่นี่...'></textarea><br>
   <button onclick="build()">สร้างลาเบล</button>
   <button onclick="window.print()">พิมพ์</button>
 </div>
@@ -100,117 +36,195 @@ B2"
 
 <script>
 function build(){
-  const raw = document.getElementById('input').value;
+  const raw = document.getElementById('input').value || '';
   const out = document.getElementById('out');
   out.innerHTML = '';
+  if(!raw.trim()) return;
 
-  if(!raw) return;
-
-  // === แยกลาเบลด้วย " ===
+  // 1 label per quoted block
   const blocks = raw.split('"').map(b => b.trim()).filter(Boolean);
 
   blocks.forEach(block => {
-    const label = parseBlock(block);
+    const label = parseBlockRobust(block);
     if(!label) return;
 
     const el = document.createElement('div');
     el.className = 'label';
 
+    // SKU placement:
+    // - COD (has เก็บเงิน/COD) => SKU top
+    // - non-COD => SKU bottom
     let html = '';
-    if(label.sku && label.isCOD){
-      html += `<div class="sku">รหัสสินค้า: ${label.sku}</div>`;
-    }
-
-    html += `<div class="title">${label.title}</div>`;
-    html += `<div class="body">${label.body}</div>`;
-
-    if(label.sku && !label.isCOD){
-      html += `<div class="sku">รหัสสินค้า: ${label.sku}</div>`;
-    }
+    if(label.sku && label.isCOD) html += `<div class="sku">${esc(label.sku)}</div>`;
+    html += `<div class="body">${esc(label.body)}</div>`;
+    if(label.sku && !label.isCOD) html += `<div class="sku">${esc(label.sku)}</div>`;
 
     el.innerHTML = html;
     out.appendChild(el);
   });
 }
 
-function parseBlock(text){
-  let rawLines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+// -------- Robust parser for messy Thai address blocks --------
+function parseBlockRobust(text){
+  let t = (text || '').replace(/\r/g,'').trim();
+  if(!t) return null;
 
-  // ตรวจว่าเป็น COD ไหม
-  const isCOD = rawLines.some(l => l.includes('เก็บเงิน') || l.startsWith('COD'));
+  // Normalize spaces
+  t = t.replace(/[ \t]+/g, ' ');
 
-  // หา SKU (B2 ฯลฯ)
+  // Split lines but keep order
+  let lines = t.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Remove "ผู้รับ" line
+  lines = lines.filter(l => l !== 'ผู้รับ');
+
+  // Determine COD mode if any line has "เก็บเงิน" or starts with COD:
+  const isCOD = lines.some(l => /เก็บเงิน/.test(l) || /^COD\s*:/i.test(l));
+
+  // Extract SKU anywhere: B2/C3/A10 etc.
+  // Keep only ONE sku, prefer explicit token like "B2"
   let sku = '';
-  const last = rawLines[rawLines.length - 1];
-  if (/^[A-Z]\d{1,2}$/i.test(last)) {
-    sku = last.toUpperCase();
-    rawLines.pop();
-  }
+  const skuRegex = /\b([A-Z]\d{1,2})\b/i;
 
-  // ตัดคำว่า ผู้รับ
-  rawLines = rawLines.filter(l => l !== 'ผู้รับ');
-
-  let name = '';
+  // Extract phone anywhere: patterns
+  // - โทร093... / โทร: 093... / เบอร์โทร 093... / 09xxxxxxxx
   let phone = '';
-  let addrLines = [];
+  const phoneRegexes = [
+    /โทร\s*[:：]?\s*([0-9]{9,10})/i,
+    /เบอร์โทร\s*[:：]?\s*([0-9]{9,10})/i,
+    /\b([0-9]{9,10})\b/
+  ];
+
+  // Collect note lines (keep "เก็บเงิน..." and "COD: ...")
   let noteLines = [];
 
-  rawLines.forEach(l => {
-    // เบอร์โทร
-    const m = l.match(/([0-9]{9,10})/);
-    if (m && !phone) {
-      phone = m[1];
-      return;
+  // Pass 1: find sku+phone+notes, and clean those tokens out of lines to avoid duplicates
+  let cleaned = [];
+  for(let line of lines){
+    // sku in this line?
+    if(!sku){
+      const sm = line.match(skuRegex);
+      if(sm) sku = sm[1].toUpperCase();
     }
 
-    // ข้าม COD / เก็บเงิน (ไม่เอาไปเป็นชื่อ)
-    if (l.startsWith('COD') || l.includes('เก็บเงิน')) {
-      noteLines.push(l);
-      return;
+    // phone in this line?
+    if(!phone){
+      for(const re of phoneRegexes){
+        const pm = line.match(re);
+        if(pm){
+          phone = pm[1];
+          break;
+        }
+      }
     }
 
-    // ชื่อ
-    if (!name && l.startsWith('คุณ')) {
-      name = l.replace(/^คุณ\s*/,'').trim();
-      return;
+    // note line?
+    if(/เก็บเงิน/.test(line) || /^COD\s*:/i.test(line)){
+      // remove sku token from note to avoid showing twice
+      if(sku) line = line.replace(new RegExp(`\\b${sku}\\b`,'ig'),'').replace(/\s+/g,' ').trim();
+      if(line) noteLines.push(line);
+      continue;
     }
 
-    // ที่อยู่
-    addrLines.push(l);
-  });
+    cleaned.push(line);
+  }
+  lines = cleaned;
 
-  // title
-  const title = isCOD ? 'เก็บเงินปลายทาง' : (name ? `ชื่อ: ${name}` : '');
-
-  // body (ใส่เฉพาะที่มีจริง)
-  let bodyLines = [];
-
-  // COD = SKU บน
-  if (isCOD && sku) bodyLines.push(`รหัสสินค้า: ${sku}`);
-
-  // note / COD detail
-  noteLines.forEach(l => bodyLines.push(l));
-
-  if (name)  bodyLines.push(`ชื่อ: ${name}`);
-  if (phone) bodyLines.push(`โทร: ${phone}`);
-
-  if (addrLines.length) {
-    bodyLines.push(`ที่อยู่:`);
-    addrLines.forEach(l => bodyLines.push(l));
+  // Remove phone from lines if it is a standalone or embedded
+  if(phone){
+    lines = lines.map(l => l
+      .replace(new RegExp(`\\b${phone}\\b`, 'g'), '')
+      .replace(/โทร\s*[:：]?\s*/i,'')
+      .replace(/เบอร์โทร\s*[:：]?\s*/i,'')
+      .replace(/[ ]{2,}/g,' ')
+      .trim()
+    ).filter(Boolean);
   }
 
-  // โอนเงิน = SKU ล่าง
-  if (!isCOD && sku) bodyLines.push(`รหัสสินค้า: ${sku}`);
+  // Remove sku from other lines to avoid duplicates
+  if(sku){
+    lines = lines.map(l => l.replace(new RegExp(`\\b${sku}\\b`,'ig'),'').replace(/\s+/g,' ').trim())
+                 .filter(Boolean);
+  }
+
+  // Name + Address extraction:
+  // Priority:
+  // 1) Line starts with "คุณ" => name is that line (minus "คุณ")
+  // 2) Else: if first line has Thai name + digits in same line (e.g. "ธิดารัตน์ ... 63/7..."),
+  //         split at first digit => left = name, right = address line
+  // 3) Else: first line = name
+  let name = '';
+  let addressLines = [...lines];
+
+  // Find "คุณ ..." anywhere
+  const youIdx = addressLines.findIndex(l => /^คุณ\s+/.test(l));
+  if(youIdx >= 0){
+    name = addressLines[youIdx].replace(/^คุณ\s+/,'').trim();
+    addressLines.splice(youIdx, 1);
+  } else if(addressLines.length){
+    // Try split first line by first digit
+    const first = addressLines[0];
+    const split = splitNameAddress(first);
+    if(split.name && split.addr){
+      name = split.name;
+      addressLines[0] = split.addr; // replace with remainder address
+      // If remainder becomes empty, remove it
+      addressLines = addressLines.filter(Boolean);
+    } else {
+      name = first.trim();
+      addressLines = addressLines.slice(1);
+    }
+  }
+
+  // Compose body WITHOUT prefixes (ตามที่คุณสั่ง: ไม่ต้องมี "ชื่อ/โทร/ที่อยู่:")
+  // Order:
+  // - Notes (COD/cash) first
+  // - Name
+  // - Address lines
+  // - Phone (as plain number) last
+  let out = [];
+  if(noteLines.length) out.push(...noteLines);
+  if(name) out.push(name);
+  if(addressLines.length) out.push(...addressLines);
+  if(phone) out.push(phone);
+
+  // Final clean: remove any blank lines
+  out = out.map(x => (x||'').trim()).filter(Boolean);
 
   return {
-    title,
-    body: bodyLines.join('\n'),
-    sku,
-    isCOD
+    isCOD,
+    sku: sku ? sku : '',
+    body: out.join('\n')
   };
 }
 
+// Split "Name Address" when they are glued in one line.
+// Example: "ธิดารัตน์ เต็มราษี 63/7บ.คูหาพัฒนา ..." => name="ธิดารัตน์ เต็มราษี", addr="63/7บ.คูหาพัฒนา ..."
+function splitNameAddress(line){
+  const s = (line||'').trim();
+  // find first digit position
+  const m = s.match(/\d/);
+  if(!m) return {name:'', addr:''};
+  const idx = s.indexOf(m[0]);
+  if(idx <= 1) return {name:'', addr:''};
 
+  const left = s.slice(0, idx).trim();
+  const right = s.slice(idx).trim();
+
+  // Heuristic: left should contain Thai letters
+  if(!/[ก-๙]/.test(left)) return {name:'', addr:''};
+
+  // Avoid taking "เก็บเงิน" or "COD" as name (just in case)
+  if(/เก็บเงิน/.test(left) || /^COD\s*:/i.test(left)) return {name:'', addr:''};
+
+  return {name:left, addr:right};
+}
+
+function esc(s){
+  return (s||'').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[m]);
+}
 </script>
 
 </body>
