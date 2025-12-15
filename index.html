@@ -1,170 +1,130 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Google Sheets → Label Print</title>
-  <style>
-    :root{
-      --w: 100mm;
-      --h: 150mm;
-      --pad: 6mm;
-      --font: 13pt;
-      --line: 1.25;
-    }
+<meta charset="UTF-8">
+<title>Sheets → Paste → Label Print (100x75)</title>
 
-    body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
-    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:end; }
-    label{ font-size:14px; }
-    input, textarea, button{ font: inherit; }
-    input{ width: 110px; padding: 6px 8px; }
-    textarea{ width: min(980px, 100%); height: 180px; padding: 10px; }
-    button{ padding: 10px 14px; cursor: pointer; }
-    .hint{ color:#555; font-size:13px; }
+<style>
+@page {
+  size: 100mm 75mm;
+  margin: 0;
+}
 
-    /* Preview area */
-    #out{ margin-top: 18px; display:flex; flex-direction:column; gap: 10px; }
-    .page{
-      width: var(--w);
-      height: var(--h);
-      border: 1px dashed #aaa;
-      box-sizing: border-box;
-      padding: var(--pad);
-      overflow: hidden;
-      background: white;
-    }
-    .name{ font-weight: 700; font-size: calc(var(--font) * 1.05); margin-bottom: 2mm; }
-    .addr{ font-size: var(--font); line-height: var(--line); white-space: pre-wrap; }
-    .phone{ margin-top: 3mm; font-size: calc(var(--font) * 0.95); }
+body {
+  font-family: Tahoma, Arial, sans-serif;
+  margin: 8px;
+}
 
-    /* Print */
-    @media print{
-      body{ margin: 0; }
-      .controls{ display:none; }
-      #out{ gap: 0; }
-      .page{
-        border: none;
-        page-break-after: always;
-      }
-    }
+.controls {
+  margin-bottom: 12px;
+}
 
-    /* Let browser know page size */
-    @page{
-      size: var(--w) var(--h);
-      margin: 0;
-    }
-  </style>
+textarea {
+  width: 100%;
+  height: 200px;
+  font-size: 14px;
+}
+
+button {
+  padding: 8px 14px;
+  font-size: 15px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.label {
+  width: 100mm;
+  height: 75mm;
+  padding: 6mm;
+  box-sizing: border-box;
+  border: 1px dashed #999;
+  page-break-after: always;
+}
+
+.label h1 {
+  font-size: 14pt;
+  margin: 0 0 4px 0;
+}
+
+.label pre {
+  font-size: 11.5pt;
+  line-height: 1.25;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+@media print {
+  .controls {
+    display: none;
+  }
+  .label {
+    border: none;
+  }
+}
+</style>
 </head>
+
 <body>
 
-  <div class="controls">
-    <h2 style="margin:0 0 10px;">Sheets → Paste → Print (เรียงหลายหน้าอัตโนมัติ)</h2>
+<div class="controls">
+  <h3>Sheets → Paste → Print (100 × 75 mm)</h3>
+  <p>วางข้อมูลจาก Google Sheets ได้เลย (เว้น 1 บรรทัดว่าง = 1 ลาเบล)</p>
 
-    <div class="row">
-      <label>ขนาดลาเบล (กว้าง mm)
-        <input id="w" type="number" value="100" min="10" step="1">
-      </label>
-      <label>สูง mm
-        <input id="h" type="number" value="150" min="10" step="1">
-      </label>
-      <label>Padding mm
-        <input id="pad" type="number" value="6" min="0" step="1">
-      </label>
-      <label>ขนาดตัวอักษร (pt)
-        <input id="font" type="number" value="13" min="6" step="1">
-      </label>
+  <textarea id="input" placeholder="วางข้อมูลตรงนี้..."></textarea><br>
+  <button onclick="buildLabels()">สร้างลาเบล</button>
+  <button onclick="window.print()">พิมพ์</button>
+</div>
 
-      <button id="build">สร้างลาเบล</button>
-      <button onclick="window.print()">พิมพ์</button>
-    </div>
-
-    <p class="hint" style="margin:10px 0 6px;">
-      วิธีวางข้อมูล: ก๊อปจาก Google Sheets (หลายแถว/หลายคอลัมน์) แล้ววางตรงนี้ได้เลย<br>
-      รองรับรูปแบบ: <b>ชื่อ[TAB]ที่อยู่[TAB]โทร</b> ต่อ 1 แถว (หรือมีมากกว่านั้นก็ได้ ระบบจะหยิบ 3 ช่องแรก)
-    </p>
-
-    <textarea id="src" placeholder="วางข้อมูลจาก Google Sheets ที่นี่..."></textarea>
-  </div>
-
-  <div id="out"></div>
+<div id="output"></div>
 
 <script>
-  const $ = (id)=>document.getElementById(id);
+function buildLabels() {
+  const raw = document.getElementById('input').value.replace(/\r/g,'').trim();
+  const out = document.getElementById('output');
+  out.innerHTML = '';
 
-  function applyVars(){
-    document.documentElement.style.setProperty('--w', `${Number($('w').value||100)}mm`);
-    document.documentElement.style.setProperty('--h', `${Number($('h').value||150)}mm`);
-    document.documentElement.style.setProperty('--pad', `${Number($('pad').value||6)}mm`);
-    document.documentElement.style.setProperty('--font', `${Number($('font').value||13)}pt`);
-  }
+  if (!raw) return;
 
-  function parseTSV(text){
-    // Accept both TSV and "blocks" separated by blank lines
-    const t = (text||'').trim();
-    if(!t) return [];
+  // แยกเป็นก้อนด้วยบรรทัดว่าง
+  const blocks = raw.split(/\n\s*\n+/);
 
-    // If it looks like TSV rows (has tabs), parse as table
-    if(t.includes('\t')){
-      const lines = t.split(/\r?\n/).filter(l=>l.trim().length);
-      return lines.map(line=>{
-        const cols = line.split('\t').map(s=>s.trim());
-        const name = cols[0] || '';
-        const addr = cols[1] || '';
-        const phone = cols[2] || '';
-        return {name, addr, phone};
-      }).filter(x => (x.name+x.addr+x.phone).trim().length);
+  blocks.forEach(block => {
+    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return;
+
+    // หาเบอร์โทร
+    let phone = '';
+    for (const l of lines) {
+      const m = l.match(/โทร[:\s]*([0-9\-]{9,})/i) || l.match(/^([0-9]{9,10})$/);
+      if (m) phone = m[1];
     }
 
-    // Otherwise treat as blocks separated by blank line:
-    // 1st line = name, last line maybe phone, middle = address
-    const blocks = t.split(/\n\s*\n/);
-    return blocks.map(b=>{
-      const lines = b.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-      if(!lines.length) return null;
-      const name = lines[0] || '';
-      let phone = '';
-      // heuristic: last line contains digits -> phone
-      if(lines.length >= 2 && /[0-9]{6,}/.test(lines[lines.length-1].replace(/\D/g,''))){
-        phone = lines.pop();
-      }
-      const addr = lines.slice(1).join('\n');
-      return {name, addr, phone};
-    }).filter(Boolean);
-  }
+    // หาหัว (COD ถ้ามี ไม่งั้นใช้บรรทัดแรก)
+    let title = lines.find(l => l.startsWith('COD')) || lines[0];
 
-  function esc(s){
-    return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  }
+    // เนื้อหา
+    let body = lines.filter(l => l !== title);
 
-  function render(items){
-    const out = $('out');
-    out.innerHTML = '';
-    if(!items.length){
-      out.innerHTML = '<p class="hint">ยังไม่มีข้อมูลให้สร้างลาเบล</p>';
-      return;
+    if (phone && !block.includes('โทร')) {
+      body.push('โทร: ' + phone);
     }
-    for(const it of items){
-      const page = document.createElement('div');
-      page.className = 'page';
-      page.innerHTML = `
-        <div class="name">${esc(it.name)}</div>
-        <div class="addr">${esc(it.addr)}</div>
-        ${it.phone ? `<div class="phone">โทร: ${esc(it.phone)}</div>` : ``}
-      `;
-      out.appendChild(page);
-    }
-  }
 
-  $('build').addEventListener('click', ()=>{
-    applyVars();
-    const items = parseTSV($('src').value);
-    render(items);
-    // Scroll preview into view
-    document.getElementById('out').scrollIntoView({behavior:'smooth', block:'start'});
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.innerHTML = `
+      <h1>${escapeHtml(title)}</h1>
+      <pre>${escapeHtml(body.join('\n'))}</pre>
+    `;
+    out.appendChild(label);
   });
+}
 
-  // initial vars
-  applyVars();
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[m]);
+}
 </script>
+
 </body>
 </html>
