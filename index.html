@@ -7,14 +7,15 @@
 <style>
 @page { size: 100mm 75mm; margin: 0; }
 
-body {
+html, body {
+  margin: 0;
+  padding: 0;
   font-family: Tahoma, Arial, sans-serif;
-  margin: 8px;
 }
 
-.controls {
-  margin-bottom: 12px;
-}
+/* มีผลเฉพาะตอนยังไม่พิมพ์ */
+.controls { margin: 8px; }
+.controls { margin-bottom: 12px; }
 
 textarea {
   width: 100%;
@@ -29,16 +30,29 @@ button {
   cursor: pointer;
 }
 
+/* ลาเบล */
 .label {
   width: 100mm;
   height: 75mm;
-  padding: 6mm;
+
+  /* ลดขอบให้เต็มขึ้น */
+  padding: 3mm;
   box-sizing: border-box;
-  border: 1px dashed #999;
+
+  /* ตัวใหญ่ขึ้น */
+  font-size: 15pt;
+  line-height: 1.18;
+
   white-space: pre-wrap;
+  border: 1px dashed #999;
+
+  /* 1 ลาเบล = 1 หน้า */
   page-break-after: always;
-  font-size: 12pt;
-  line-height: 1.25;
+}
+
+/* กันหน้าว่างท้ายสุด */
+.label:last-child {
+  page-break-after: auto;
 }
 
 @media print {
@@ -46,6 +60,7 @@ button {
   .label { border: none; }
 }
 </style>
+
 </head>
 
 <body>
